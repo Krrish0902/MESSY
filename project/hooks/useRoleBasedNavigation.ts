@@ -1,10 +1,35 @@
 import { useAuth } from '../contexts/AuthContext';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
+// Define role permissions
+export const ROLE_PERMISSIONS = {
+  customer: {
+    screens: ['home', 'discover', 'subscriptions', 'notifications', 'profile'] as const,
+    features: ['browse_messes', 'manage_subscriptions', 'view_messages', 'edit_profile'] as const,
+    defaultScreen: 'home' as const
+  },
+  mess_owner: {
+    screens: ['dashboard', 'menu', 'subscribers', 'notifications', 'profile'] as const,
+    features: ['manage_mess', 'manage_menu', 'view_subscribers', 'view_messages', 'edit_profile'] as const,
+    defaultScreen: 'dashboard' as const
+  },
+  admin: {
+    screens: ['overview', 'messes', 'settings'] as const,
+    features: ['system_management', 'approve_messes', 'view_all_data', 'manage_settings'] as const,
+    defaultScreen: 'overview' as const
+  }
+} as const;
+
+type Feature = 
+  | 'browse_messes' | 'manage_subscriptions' | 'view_notifications' | 'edit_profile'
+  | 'manage_mess' | 'manage_menu' | 'view_subscribers'
+  | 'system_management' | 'approve_messes' | 'view_all_data' | 'manage_settings';
+
 export function useRoleBasedNavigation() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const hasRedirected = useRef(false);
   const lastUserRole = useRef<string | null>(null);
 
@@ -15,43 +40,43 @@ export function useRoleBasedNavigation() {
       lastUserRole.current = user.role;
     }
 
-    if (user && !hasRedirected.current) {
-      // Get the current path
-      const currentPath = (router as any).pathname || '';
-      
-      // Define valid screens for each role
-      const validScreens = {
-        customer: ['home', 'discover', 'subscriptions', 'messages', 'profile'],
-        mess_owner: ['dashboard', 'menu', 'subscribers', 'messages', 'profile'],
-        admin: ['overview', 'messes', 'settings'],
-      };
-
-      const userValidScreens = validScreens[user.role as keyof typeof validScreens] || validScreens.customer;
+    if (user && session && !hasRedirected.current) {
+      const userRole = user.role as keyof typeof ROLE_PERMISSIONS;
+      const permissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.customer;
       
       // Check if current path is valid for this user
-      const isValidPath = userValidScreens.some(screen => currentPath.includes(screen));
+      const currentScreen = pathname.split('/').pop()?.split('?')[0];
+      const isValidPath = permissions.screens.includes(currentScreen as any);
       
       if (!isValidPath) {
-        // Redirect to the first valid screen for this role
-        const defaultScreen = userValidScreens[0];
+        // Redirect to the default screen for this role
         hasRedirected.current = true;
-        router.replace(`/(tabs)/${defaultScreen}` as any);
+        router.replace(`/(tabs)/${permissions.defaultScreen}` as any);
       }
     }
-  }, [user]);
+  }, [user, session, pathname]);
 
   return {
     isValidScreen: (screenName: string) => {
       if (!user) return false;
       
-      const validScreens = {
-        customer: ['home', 'discover', 'subscriptions', 'messages', 'profile'],
-        mess_owner: ['dashboard', 'menu', 'subscribers', 'messages', 'profile'],
-        admin: ['overview', 'messes', 'settings'],
-      };
-
-      const userValidScreens = validScreens[user.role as keyof typeof validScreens] || validScreens.customer;
-      return userValidScreens.includes(screenName);
+      const userRole = user.role as keyof typeof ROLE_PERMISSIONS;
+      const permissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.customer;
+      return permissions.screens.includes(screenName as any);
+    },
+    hasPermission: (feature: Feature) => {
+      if (!user) return false;
+      
+      const userRole = user.role as keyof typeof ROLE_PERMISSIONS;
+      const permissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.customer;
+      return permissions.features.includes(feature as any);
+    },
+    getValidScreens: () => {
+      if (!user) return [];
+      
+      const userRole = user.role as keyof typeof ROLE_PERMISSIONS;
+      const permissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.customer;
+      return permissions.screens;
     }
   };
 } 

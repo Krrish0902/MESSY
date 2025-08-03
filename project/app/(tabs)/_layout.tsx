@@ -1,29 +1,19 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Search, Calendar, User, Settings } from 'lucide-react-native';
+import { Home, Search, Calendar, User, Settings, Bell, Users } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRoleBasedNavigation } from '../../hooks/useRoleBasedNavigation';
 
 export default function TabLayout() {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const { isValidScreen } = useRoleBasedNavigation();
 
-  // Memoize the valid screens for the current user role
-  const validScreens = useMemo(() => {
-    if (!user) return [];
-    
-    const screensByRole = {
-      customer: ['home', 'discover', 'subscriptions', 'messages', 'profile'],
-      mess_owner: ['dashboard', 'menu', 'subscribers', 'messages', 'profile'],
-      admin: ['overview', 'messes', 'settings'],
-    };
-
-    return screensByRole[user.role as keyof typeof screensByRole] || screensByRole.customer;
-  }, [user]);
-
-  const isValidScreen = (screenName: string) => {
-    return validScreens.includes(screenName);
-  };
+  // Only show tabs if user is authenticated
+  if (!user || !session) {
+    return null;
+  }
 
   return (
     <Tabs
@@ -62,11 +52,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="messages"
+        name="notifications"
         options={{
-          title: 'Messages',
-          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
-          href: isValidScreen('messages') ? '/(tabs)/messages' : null,
+          title: 'Notifications',
+          tabBarIcon: ({ size, color }) => <Bell size={size} color={color} />,
+          href: isValidScreen('notifications') ? '/(tabs)/notifications' : null,
         }}
       />
       <Tabs.Screen
@@ -89,7 +79,7 @@ export default function TabLayout() {
         name="subscribers"
         options={{
           title: 'Subscribers',
-          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <Users size={size} color={color} />,
           href: isValidScreen('subscribers') ? '/(tabs)/subscribers' : null,
         }}
       />
@@ -97,7 +87,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size, color }) => <Settings size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
           href: isValidScreen('profile') ? '/(tabs)/profile' : null,
         }}
       />

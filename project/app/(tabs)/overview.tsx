@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { Database } from '../../types/database';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import ProtectedRoute from '../../components/common/ProtectedRoute';
 
 type User = Database['public']['Tables']['users']['Row'];
 type Mess = Database['public']['Tables']['messes']['Row'];
@@ -107,155 +108,157 @@ export default function OverviewTab() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.onBackground }]}>
-            System Overview
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Welcome back, {user?.full_name}
-          </Text>
-        </View>
+    <ProtectedRoute requiredRole="admin" requiredPermission="system_management">
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: theme.colors.onBackground }]}>
+              System Overview
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+              Welcome back, {user?.full_name}
+            </Text>
+          </View>
 
-        {error && (
-          <ErrorMessage message={error} onRetry={fetchSystemStats} />
-        )}
+          {error && (
+            <ErrorMessage message={error} onRetry={fetchSystemStats} />
+          )}
 
-        {/* Statistics Cards */}
-        <View style={styles.statsGrid}>
-          <Card style={styles.statCard}>
+          {/* Statistics Cards */}
+          <View style={styles.statsGrid}>
+            <Card style={styles.statCard}>
+              <Card.Content>
+                <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
+                  {stats.totalUsers}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Total Users
+                </Text>
+              </Card.Content>
+            </Card>
+
+            <Card style={styles.statCard}>
+              <Card.Content>
+                <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
+                  {stats.totalMesses}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Total Messes
+                </Text>
+              </Card.Content>
+            </Card>
+
+            <Card style={styles.statCard}>
+              <Card.Content>
+                <Text style={[styles.statNumber, { color: theme.colors.warning }]}>
+                  {stats.pendingMesses}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Pending Approval
+                </Text>
+              </Card.Content>
+            </Card>
+
+            <Card style={styles.statCard}>
+              <Card.Content>
+                <Text style={[styles.statNumber, { color: theme.colors.success }]}>
+                  {stats.activeSubscriptions}
+                </Text>
+                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Active Subscriptions
+                </Text>
+              </Card.Content>
+            </Card>
+          </View>
+
+          {/* Recent Users */}
+          <Card style={styles.sectionCard}>
             <Card.Content>
-              <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
-                {stats.totalUsers}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Total Users
-              </Text>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+                  Recent Users
+                </Text>
+                <Button mode="text" onPress={() => {}}>
+                  View All
+                </Button>
+              </View>
+              
+              <DataTable>
+                <DataTable.Header>
+                  <DataTable.Title>Name</DataTable.Title>
+                  <DataTable.Title>Role</DataTable.Title>
+                  <DataTable.Title>Status</DataTable.Title>
+                </DataTable.Header>
+
+                {stats.recentUsers.map((user) => (
+                  <DataTable.Row key={user.id}>
+                    <DataTable.Cell>{user.full_name}</DataTable.Cell>
+                    <DataTable.Cell>
+                      <Chip size="small" mode="outlined">
+                        {user.role}
+                      </Chip>
+                    </DataTable.Cell>
+                    <DataTable.Cell>
+                      <Chip 
+                        size="small" 
+                        mode={user.is_active ? "flat" : "outlined"}
+                        textColor={user.is_active ? theme.colors.success : theme.colors.error}
+                      >
+                        {user.is_active ? 'Active' : 'Inactive'}
+                      </Chip>
+                    </DataTable.Cell>
+                  </DataTable.Row>
+                ))}
+              </DataTable>
             </Card.Content>
           </Card>
 
-          <Card style={styles.statCard}>
+          {/* Recent Messes */}
+          <Card style={styles.sectionCard}>
             <Card.Content>
-              <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
-                {stats.totalMesses}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Total Messes
-              </Text>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+                  Recent Messes
+                </Text>
+                <Button mode="text" onPress={() => {}}>
+                  View All
+                </Button>
+              </View>
+              
+              <DataTable>
+                <DataTable.Header>
+                  <DataTable.Title>Name</DataTable.Title>
+                  <DataTable.Title>Status</DataTable.Title>
+                  <DataTable.Title>Rating</DataTable.Title>
+                </DataTable.Header>
+
+                {stats.recentMesses.map((mess) => (
+                  <DataTable.Row key={mess.id}>
+                    <DataTable.Cell>{mess.name}</DataTable.Cell>
+                    <DataTable.Cell>
+                      <Chip 
+                        size="small" 
+                        mode="outlined"
+                        textColor={
+                          mess.status === 'approved' ? theme.colors.success :
+                          mess.status === 'pending' ? theme.colors.warning :
+                          theme.colors.error
+                        }
+                      >
+                        {mess.status}
+                      </Chip>
+                    </DataTable.Cell>
+                    <DataTable.Cell>
+                      ⭐ {mess.rating_average.toFixed(1)}
+                    </DataTable.Cell>
+                  </DataTable.Row>
+                ))}
+              </DataTable>
             </Card.Content>
           </Card>
-
-          <Card style={styles.statCard}>
-            <Card.Content>
-              <Text style={[styles.statNumber, { color: theme.colors.warning }]}>
-                {stats.pendingMesses}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Pending Approval
-              </Text>
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.statCard}>
-            <Card.Content>
-              <Text style={[styles.statNumber, { color: theme.colors.success }]}>
-                {stats.activeSubscriptions}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Active Subscriptions
-              </Text>
-            </Card.Content>
-          </Card>
-        </View>
-
-        {/* Recent Users */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                Recent Users
-              </Text>
-              <Button mode="text" onPress={() => {}}>
-                View All
-              </Button>
-            </View>
-            
-            <DataTable>
-              <DataTable.Header>
-                <DataTable.Title>Name</DataTable.Title>
-                <DataTable.Title>Role</DataTable.Title>
-                <DataTable.Title>Status</DataTable.Title>
-              </DataTable.Header>
-
-              {stats.recentUsers.map((user) => (
-                <DataTable.Row key={user.id}>
-                  <DataTable.Cell>{user.full_name}</DataTable.Cell>
-                  <DataTable.Cell>
-                    <Chip size="small" mode="outlined">
-                      {user.role}
-                    </Chip>
-                  </DataTable.Cell>
-                  <DataTable.Cell>
-                    <Chip 
-                      size="small" 
-                      mode={user.is_active ? "flat" : "outlined"}
-                      textColor={user.is_active ? theme.colors.success : theme.colors.error}
-                    >
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </Chip>
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}
-            </DataTable>
-          </Card.Content>
-        </Card>
-
-        {/* Recent Messes */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                Recent Messes
-              </Text>
-              <Button mode="text" onPress={() => {}}>
-                View All
-              </Button>
-            </View>
-            
-            <DataTable>
-              <DataTable.Header>
-                <DataTable.Title>Name</DataTable.Title>
-                <DataTable.Title>Status</DataTable.Title>
-                <DataTable.Title>Rating</DataTable.Title>
-              </DataTable.Header>
-
-              {stats.recentMesses.map((mess) => (
-                <DataTable.Row key={mess.id}>
-                  <DataTable.Cell>{mess.name}</DataTable.Cell>
-                  <DataTable.Cell>
-                    <Chip 
-                      size="small" 
-                      mode="outlined"
-                      textColor={
-                        mess.status === 'approved' ? theme.colors.success :
-                        mess.status === 'pending' ? theme.colors.warning :
-                        theme.colors.error
-                      }
-                    >
-                      {mess.status}
-                    </Chip>
-                  </DataTable.Cell>
-                  <DataTable.Cell>
-                    ⭐ {mess.rating_average.toFixed(1)}
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}
-            </DataTable>
-          </Card.Content>
-        </Card>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </ProtectedRoute>
   );
 }
 

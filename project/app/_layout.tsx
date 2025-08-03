@@ -6,11 +6,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import AuthScreen from '../components/auth/AuthScreen';
-import LoadingSpinner from '../components/common/LoadingSpinner'
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import { useRoleBasedNavigation } from '../hooks/useRoleBasedNavigation';
 
 function RootLayoutContent() {
   const { session, user, loading } = useAuth();
   const { theme } = useTheme();
+  useRoleBasedNavigation(); // This will handle role-based redirects
 
   if (loading) {
     return <LoadingSpinner message="Loading MESSY..." />;

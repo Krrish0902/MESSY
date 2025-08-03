@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { Database } from '../../types/database';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import ProtectedRoute from '../../components/common/ProtectedRoute';
 
 type Mess = Database['public']['Tables']['messes']['Row'];
 
@@ -123,161 +124,163 @@ export default function DashboardTab() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.onBackground }]}>
-            My Messes
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Manage your messes and track their performance
-          </Text>
-        </View>
+    <ProtectedRoute requiredRole="mess_owner" requiredPermission="manage_mess">
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: theme.colors.onBackground }]}>
+              My Messes
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+              Manage your messes and track their performance
+            </Text>
+          </View>
 
-        {error && (
-          <ErrorMessage message={error} onRetry={fetchMesses} />
-        )}
+          {error && (
+            <ErrorMessage message={error} onRetry={fetchMesses} />
+          )}
 
-        {messes.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <Card.Content>
-              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                You haven't created any messes yet
-              </Text>
-              <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-                Create your first mess to start serving customers
-              </Text>
-            </Card.Content>
-          </Card>
-        ) : (
-          messes.map((mess) => (
-            <Card key={mess.id} style={styles.messCard}>
+          {messes.length === 0 ? (
+            <Card style={styles.emptyCard}>
               <Card.Content>
-                <View style={styles.messHeader}>
-                  <View style={styles.messInfo}>
-                    <Text style={[styles.messName, { color: theme.colors.onSurface }]}>
-                      {mess.name}
-                    </Text>
-                    <Text style={[styles.messAddress, { color: theme.colors.onSurfaceVariant }]}>
-                      {mess.address}
-                    </Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(mess.status) }]}>
-                    <Text style={[styles.statusText, { color: theme.colors.surface }]}>
-                      {mess.status.toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-                
-                <Text style={[styles.messDescription, { color: theme.colors.onSurfaceVariant }]}>
-                  {mess.description}
+                <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+                  You haven't created any messes yet
                 </Text>
-
-                <View style={styles.messStats}>
-                  <Text style={[styles.stat, { color: theme.colors.onSurfaceVariant }]}>
-                    ⭐ {mess.rating_average.toFixed(1)} ({mess.rating_count} reviews)
-                  </Text>
-                  <Text style={[styles.stat, { color: theme.colors.onSurfaceVariant }]}>
-                    📍 {mess.delivery_radius}km radius
-                  </Text>
-                </View>
-
-                <View style={styles.messActions}>
-                  <Button mode="outlined" style={styles.actionButton}>
-                    Edit
-                  </Button>
-                  <Button mode="outlined" style={styles.actionButton}>
-                    View Menu
-                  </Button>
-                </View>
+                <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
+                  Create your first mess to start serving customers
+                </Text>
               </Card.Content>
             </Card>
-          ))
-        )}
-      </ScrollView>
+          ) : (
+            messes.map((mess) => (
+              <Card key={mess.id} style={styles.messCard}>
+                <Card.Content>
+                  <View style={styles.messHeader}>
+                    <View style={styles.messInfo}>
+                      <Text style={[styles.messName, { color: theme.colors.onSurface }]}>
+                        {mess.name}
+                      </Text>
+                      <Text style={[styles.messAddress, { color: theme.colors.onSurfaceVariant }]}>
+                        {mess.address}
+                      </Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(mess.status) }]}>
+                      <Text style={[styles.statusText, { color: theme.colors.surface }]}>
+                        {mess.status.toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <Text style={[styles.messDescription, { color: theme.colors.onSurfaceVariant }]}>
+                    {mess.description}
+                  </Text>
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => setShowCreateDialog(true)}
-      />
+                  <View style={styles.messStats}>
+                    <Text style={[styles.stat, { color: theme.colors.onSurfaceVariant }]}>
+                      ⭐ {mess.rating_average.toFixed(1)} ({mess.rating_count} reviews)
+                    </Text>
+                    <Text style={[styles.stat, { color: theme.colors.onSurfaceVariant }]}>
+                      📍 {mess.delivery_radius}km radius
+                    </Text>
+                  </View>
 
-      <Portal>
-        <Dialog visible={showCreateDialog} onDismiss={() => setShowCreateDialog(false)}>
-          <Dialog.Title>Create New Mess</Dialog.Title>
-          <Dialog.Content>
-            <ScrollView>
-              <TextInput
-                label="Mess Name *"
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                style={styles.input}
-              />
-              <TextInput
-                label="Description *"
-                value={formData.description}
-                onChangeText={(text) => setFormData({ ...formData, description: text })}
-                multiline
-                numberOfLines={3}
-                style={styles.input}
-              />
-              <TextInput
-                label="Address *"
-                value={formData.address}
-                onChangeText={(text) => setFormData({ ...formData, address: text })}
-                style={styles.input}
-              />
-              <TextInput
-                label="Phone Number *"
-                value={formData.phone}
-                onChangeText={(text) => setFormData({ ...formData, phone: text })}
-                keyboardType="phone-pad"
-                style={styles.input}
-              />
-              <TextInput
-                label="Email (optional)"
-                value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
-                keyboardType="email-address"
-                style={styles.input}
-              />
-              <TextInput
-                label="Delivery Radius (km)"
-                value={formData.delivery_radius}
-                onChangeText={(text) => setFormData({ ...formData, delivery_radius: text })}
-                keyboardType="numeric"
-                style={styles.input}
-              />
-              <View style={styles.timeContainer}>
+                  <View style={styles.messActions}>
+                    <Button mode="outlined" style={styles.actionButton}>
+                      Edit
+                    </Button>
+                    <Button mode="outlined" style={styles.actionButton}>
+                      View Menu
+                    </Button>
+                  </View>
+                </Card.Content>
+              </Card>
+            ))
+          )}
+        </ScrollView>
+
+        <FAB
+          icon="plus"
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          onPress={() => setShowCreateDialog(true)}
+        />
+
+        <Portal>
+          <Dialog visible={showCreateDialog} onDismiss={() => setShowCreateDialog(false)}>
+            <Dialog.Title>Create New Mess</Dialog.Title>
+            <Dialog.Content>
+              <ScrollView>
                 <TextInput
-                  label="Open Time"
-                  value={formData.open_time}
-                  onChangeText={(text) => setFormData({ ...formData, open_time: text })}
-                  style={[styles.input, styles.halfInput]}
+                  label="Mess Name *"
+                  value={formData.name}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  style={styles.input}
                 />
                 <TextInput
-                  label="Close Time"
-                  value={formData.close_time}
-                  onChangeText={(text) => setFormData({ ...formData, close_time: text })}
-                  style={[styles.input, styles.halfInput]}
+                  label="Description *"
+                  value={formData.description}
+                  onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  multiline
+                  numberOfLines={3}
+                  style={styles.input}
                 />
-              </View>
-            </ScrollView>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowCreateDialog(false)}>Cancel</Button>
-            <Button 
-              mode="contained" 
-              onPress={handleCreateMess}
-              loading={creating}
-              disabled={creating}
-            >
-              Create Mess
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </View>
+                <TextInput
+                  label="Address *"
+                  value={formData.address}
+                  onChangeText={(text) => setFormData({ ...formData, address: text })}
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Phone Number *"
+                  value={formData.phone}
+                  onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Email (optional)"
+                  value={formData.email}
+                  onChangeText={(text) => setFormData({ ...formData, email: text })}
+                  keyboardType="email-address"
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Delivery Radius (km)"
+                  value={formData.delivery_radius}
+                  onChangeText={(text) => setFormData({ ...formData, delivery_radius: text })}
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+                <View style={styles.timeContainer}>
+                  <TextInput
+                    label="Open Time"
+                    value={formData.open_time}
+                    onChangeText={(text) => setFormData({ ...formData, open_time: text })}
+                    style={[styles.input, styles.halfInput]}
+                  />
+                  <TextInput
+                    label="Close Time"
+                    value={formData.close_time}
+                    onChangeText={(text) => setFormData({ ...formData, close_time: text })}
+                    style={[styles.input, styles.halfInput]}
+                  />
+                </View>
+              </ScrollView>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowCreateDialog(false)}>Cancel</Button>
+              <Button 
+                mode="contained" 
+                onPress={handleCreateMess}
+                loading={creating}
+                disabled={creating}
+              >
+                Create Mess
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
+      </View>
+    </ProtectedRoute>
   );
 }
 

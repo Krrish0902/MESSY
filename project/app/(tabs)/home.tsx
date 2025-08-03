@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { Database } from '../../types/database';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import ProtectedRoute from '../../components/common/ProtectedRoute';
 import { DateTime } from 'luxon';
 
 type Delivery = Database['public']['Tables']['deliveries']['Row'] & {
@@ -66,84 +67,71 @@ export default function HomeTab() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.header}>
-          <Text style={[styles.greeting, { color: theme.colors.onBackground }]}>
-            Good {DateTime.now().hour < 12 ? 'Morning' : DateTime.now().hour < 17 ? 'Afternoon' : 'Evening'}, {user?.full_name}!
+    <ProtectedRoute requiredRole="customer" requiredPermission="browse_messes">
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.header}>
+            <Text style={[styles.greeting, { color: theme.colors.onBackground }]}>
+              Good {DateTime.now().hour < 12 ? 'Morning' : DateTime.now().hour < 17 ? 'Afternoon' : 'Evening'}, {user?.full_name}!
+            </Text>
+            <Text style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
+              {DateTime.now().toFormat('EEEE, MMMM dd')}
+            </Text>
+          </View>
+
+          {error && (
+            <ErrorMessage message={error} onRetry={fetchTodayDeliveries} />
+          )}
+
+          <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
+            Today's Meals
           </Text>
-          <Text style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
-            {DateTime.now().toFormat('EEEE, MMMM dd')}
-          </Text>
-        </View>
 
-        {error && (
-          <ErrorMessage message={error} onRetry={fetchTodayDeliveries} />
-        )}
-
-        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-          Today's Meals
-        </Text>
-
-        {deliveries.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <Card.Content>
-              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                No meals scheduled for today
-              </Text>
-              <Button mode="outlined" style={styles.exploreButton}>
-                Explore Messes
-              </Button>
-            </Card.Content>
-          </Card>
-        ) : (
-          deliveries.map((delivery) => (
-            <Card key={delivery.id} style={styles.deliveryCard}>
+          {deliveries.length === 0 ? (
+            <Card style={styles.emptyCard}>
               <Card.Content>
-                <View style={styles.deliveryHeader}>
-                  <Text style={[styles.mealType, { color: theme.colors.primary }]}>
-                    {delivery.meal_type.toUpperCase()}
-                  </Text>
-                  <Text style={[
-                    styles.status,
-                    {
-                      color: delivery.status === 'delivered' ? theme.colors.success :
-                             delivery.status === 'skipped' ? theme.colors.warning :
-                             theme.colors.onSurfaceVariant
-                    }
-                  ]}>
-                    {delivery.status.toUpperCase()}
-                  </Text>
-                </View>
-                <Text style={[styles.messName, { color: theme.colors.onSurface }]}>
-                  {delivery.subscriptions.messes.name}
+                <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+                  No meals scheduled for today
                 </Text>
-                {delivery.status === 'scheduled' && (
-                  <Button
-                    mode="text"
-                    style={styles.actionButton}
-                    textColor={theme.colors.primary}
-                  >
-                    Skip This Meal
-                  </Button>
-                )}
+                <Button mode="outlined" style={styles.exploreButton}>
+                  Explore Messes
+                </Button>
               </Card.Content>
             </Card>
-          ))
-        )}
-      </ScrollView>
-
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => {}}
-      />
-    </View>
+          ) : (
+            deliveries.map((delivery) => (
+              <Card key={delivery.id} style={styles.deliveryCard}>
+                <Card.Content>
+                  <View style={styles.deliveryHeader}>
+                    <Text style={[styles.mealType, { color: theme.colors.primary }]}>
+                      {delivery.meal_type.charAt(0).toUpperCase() + delivery.meal_type.slice(1)}
+                    </Text>
+                    <Text style={[styles.messName, { color: theme.colors.onSurface }]}>
+                      {delivery.subscriptions.messes.name}
+                    </Text>
+                  </View>
+                  
+                  <Text style={[styles.deliveryTime, { color: theme.colors.onSurfaceVariant }]}>
+                    🕐 {delivery.delivery_time}
+                  </Text>
+                  
+                  <View style={styles.deliveryStatus}>
+                    <Text style={[styles.status, { color: theme.colors.success }]}>
+                      ✅ {delivery.status}
+                    </Text>
+                  </View>
+                </Card.Content>
+              </Card>
+            ))
+          )}
+        </ScrollView>
+      </View>
+    </ProtectedRoute>
   );
 }
 

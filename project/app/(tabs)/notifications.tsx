@@ -50,7 +50,7 @@ export default function MessagesTab() {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading messages..." />;
+    return <LoadingSpinner message="Loading Notifications..." />;
   }
 
   return (
@@ -58,7 +58,7 @@ export default function MessagesTab() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.onBackground }]}>
-            Messages
+            Notifications
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
             Your notifications and updates
@@ -73,7 +73,7 @@ export default function MessagesTab() {
           <Card style={styles.emptyCard}>
             <Card.Content>
               <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                No messages yet
+                No Notifications yet
               </Text>
               <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
                 You'll see notifications here when you have updates

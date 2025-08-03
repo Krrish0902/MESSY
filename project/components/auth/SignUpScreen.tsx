@@ -17,7 +17,7 @@ export default function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
     confirmPassword: '',
     fullName: '',
     phone: '',
-    role: 'customer' as 'customer' | 'mess_owner' | 'admin',
+    role: 'customer' as 'customer' | 'mess_owner',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -93,7 +93,6 @@ export default function SignUpScreen({ onSwitchToLogin }: SignUpScreenProps) {
               buttons={[
                 { value: 'customer', label: 'Customer' },
                 { value: 'mess_owner', label: 'Mess Owner' },
-                { value: 'admin', label: 'Admin' },
               ]}
               style={styles.roleSelector}
             />

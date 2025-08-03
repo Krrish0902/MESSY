@@ -90,19 +90,6 @@ export default function LoginScreen({ onSwitchToSignUp }: LoginScreenProps) {
 
             <Divider style={styles.divider} />
 
-            <Button
-              mode="outlined"
-              onPress={() => {
-                setEmail('admin@messy.com');
-                setPassword('admin123');
-                handleLogin();
-              }}
-              style={styles.adminButton}
-              contentStyle={styles.buttonContent}
-            >
-              Quick Admin Login
-            </Button>
-
             <Divider style={styles.divider} />
 
             <Button

@@ -72,22 +72,6 @@ export default function MessCard({ mess, userLocation, onPress, onSubscribe }: M
             </Chip>
           </View>
 
-          <View style={styles.actions}>
-            <Button
-              mode="outlined"
-              onPress={onPress}
-              style={styles.actionButton}
-            >
-              View Menu
-            </Button>
-            <Button
-              mode="contained"
-              onPress={onSubscribe}
-              style={styles.actionButton}
-            >
-              Subscribe
-            </Button>
-          </View>
         </Card.Content>
       </Card>
     </TouchableOpacity>

@@ -18,15 +18,24 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
+
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.outline,
+          borderTopWidth: 0,
         },
         headerShown: false,
       }}
     >
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarIcon: ({ size, color }) => <Bell size={size} color={color} />,
+          href: isValidScreen('notifications') ? '/(tabs)/notifications' : null,
+        }}
+      />
       <Tabs.Screen
         name="home"
         options={{
@@ -49,14 +58,6 @@ export default function TabLayout() {
           title: 'My Plans',
           tabBarIcon: ({ size, color }) => <Calendar size={size} color={color} />,
           href: isValidScreen('subscriptions') ? '/(tabs)/subscriptions' : null,
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: 'Notifications',
-          tabBarIcon: ({ size, color }) => <Bell size={size} color={color} />,
-          href: isValidScreen('notifications') ? '/(tabs)/notifications' : null,
         }}
       />
       <Tabs.Screen

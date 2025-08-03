@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import { Database } from '../../types/database';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import ProtectedRoute from '../../components/common/ProtectedRoute';
 
 type Notification = Database['public']['Tables']['notifications']['Row'];
 
@@ -54,75 +55,71 @@ export default function MessagesTab() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.colors.onBackground }]}>
-            Notifications
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Your notifications and updates
-          </Text>
-        </View>
+    <ProtectedRoute requiredPermission="view_notifications">
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: theme.colors.onBackground }]}>
+              Notifications
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+              Your notifications and updates
+            </Text>
+          </View>
 
-        {error && (
-          <ErrorMessage message={error} onRetry={fetchNotifications} />
-        )}
+          {error && (
+            <ErrorMessage message={error} onRetry={fetchNotifications} />
+          )}
 
-        {notifications.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <Card.Content>
-              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                No Notifications yet
-              </Text>
-              <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-                You'll see notifications here when you have updates
-              </Text>
-            </Card.Content>
-          </Card>
-        ) : (
-          notifications.map((notification) => (
-            <Card key={notification.id} style={styles.notificationCard}>
+          {notifications.length === 0 ? (
+            <Card style={styles.emptyCard}>
               <Card.Content>
-                <View style={styles.notificationHeader}>
-                  <View style={styles.notificationInfo}>
-                    <Text style={[styles.notificationTitle, { color: theme.colors.onSurface }]}>
-                      {notification.title}
-                    </Text>
-                    <Text style={[styles.notificationTime, { color: theme.colors.onSurfaceVariant }]}>
-                      {new Date(notification.created_at).toLocaleString()}
-                    </Text>
-                  </View>
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationIcon}>
-                      {getNotificationIcon(notification.type)}
-                    </Text>
-                    <Chip 
-                      mode="outlined"
-                      style={{ marginTop: 4 }}
-                    >
-                      {notification.type}
-                    </Chip>
-                  </View>
-                </View>
-
-                <Text style={[styles.notificationMessage, { color: theme.colors.onSurfaceVariant }]}>
-                  {notification.message}
+                <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+                  No Notifications yet
                 </Text>
-
-                {!notification.is_read && (
-                  <View style={styles.unreadIndicator}>
-                    <Text style={[styles.unreadText, { color: theme.colors.primary }]}>
-                      New
-                    </Text>
-                  </View>
-                )}
+                <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
+                  You'll see notifications here when you have updates
+                </Text>
               </Card.Content>
             </Card>
-          ))
-        )}
-      </ScrollView>
-    </View>
+          ) : (
+            notifications.map((notification) => (
+              <Card key={notification.id} style={styles.notificationCard}>
+                <Card.Content>
+                  <View style={styles.notificationHeader}>
+                    <View style={styles.notificationInfo}>
+                      <Text style={[styles.notificationTitle, { color: theme.colors.onSurface }]}>
+                        {notification.title}
+                      </Text>
+                      <Text style={[styles.notificationTime, { color: theme.colors.onSurfaceVariant }]}>
+                        {new Date(notification.created_at).toLocaleString()}
+                      </Text>
+                    </View>
+                    <View style={styles.notificationBadge}>
+                      <Text style={styles.notificationIcon}>
+                        {getNotificationIcon(notification.type)}
+                      </Text>
+                      <Chip 
+                        mode="outlined"
+                        style={{ 
+                          backgroundColor: notification.is_read ? theme.colors.surfaceVariant : theme.colors.primaryContainer 
+                        }}
+                      >
+                        {notification.is_read ? 'Read' : 'New'}
+                      </Chip>
+                    </View>
+                  </View>
+                  
+                  <Text style={[styles.notificationMessage, { color: theme.colors.onSurfaceVariant }]}>
+                    {notification.message}
+                  </Text>
+                </Card.Content>
+              </Card>
+            ))
+          )}
+        </ScrollView>
+      </View>
+    </ProtectedRoute>
   );
 }
 
@@ -136,6 +133,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+    marginTop: 26,
   },
   title: {
     fontSize: 28,

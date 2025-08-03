@@ -6,17 +6,17 @@ import { useEffect, useRef } from 'react';
 export const ROLE_PERMISSIONS = {
   customer: {
     screens: ['home', 'discover', 'subscriptions', 'notifications', 'profile'] as const,
-    features: ['browse_messes', 'manage_subscriptions', 'view_messages', 'edit_profile'] as const,
+    features: ['browse_messes', 'manage_subscriptions', 'view_notifications', 'edit_profile'] as const,
     defaultScreen: 'home' as const
   },
   mess_owner: {
     screens: ['dashboard', 'menu', 'subscribers', 'notifications', 'profile'] as const,
-    features: ['manage_mess', 'manage_menu', 'view_subscribers', 'view_messages', 'edit_profile'] as const,
+    features: ['manage_mess', 'manage_menu', 'view_subscribers', 'view_notifications', 'edit_profile'] as const,
     defaultScreen: 'dashboard' as const
   },
   admin: {
-    screens: ['overview', 'messes', 'settings'] as const,
-    features: ['system_management', 'approve_messes', 'view_all_data', 'manage_settings'] as const,
+    screens: ['overview', 'messes', 'notifications', 'settings'] as const,
+    features: ['system_management', 'approve_messes', 'view_all_data', 'manage_settings', 'view_notifications'] as const,
     defaultScreen: 'overview' as const
   }
 } as const;
@@ -44,14 +44,18 @@ export function useRoleBasedNavigation() {
       const userRole = user.role as keyof typeof ROLE_PERMISSIONS;
       const permissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS.customer;
       
-      // Check if current path is valid for this user
+      // Only check tab screens, not other pages like mess-details
       const currentScreen = pathname.split('/').pop()?.split('?')[0];
-      const isValidPath = permissions.screens.includes(currentScreen as any);
       
-      if (!isValidPath) {
-        // Redirect to the default screen for this role
-        hasRedirected.current = true;
-        router.replace(`/(tabs)/${permissions.defaultScreen}` as any);
+      // Skip navigation check for non-tab pages
+      if (pathname.includes('/(tabs)/') && currentScreen) {
+        const isValidPath = permissions.screens.includes(currentScreen as any);
+        
+        if (!isValidPath) {
+          // Redirect to the default screen for this role
+          hasRedirected.current = true;
+          router.replace(`/(tabs)/${permissions.defaultScreen}` as any);
+        }
       }
     }
   }, [user, session, pathname]);

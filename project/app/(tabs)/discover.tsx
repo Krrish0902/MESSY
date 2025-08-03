@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Searchbar, Button, Chip } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
@@ -15,11 +16,12 @@ type Mess = Database['public']['Tables']['messes']['Row'];
 export default function DiscoverTab() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const router = useRouter();
   const [messes, setMesses] = useState<Mess[]>([]);
   const [filteredMesses, setFilteredMesses] = useState<Mess[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | undefined>(undefined);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [error, setError] = useState('');
 
@@ -108,8 +110,8 @@ export default function DiscoverTab() {
   };
 
   const handleMessPress = (mess: Mess) => {
-    // Navigate to mess details
-    console.log('Navigate to mess details:', mess.id);
+    // Navigate to mess details page
+    router.push(`/mess-details?messId=${mess.id}` as any);
   };
 
   const handleSubscribe = (mess: Mess) => {
@@ -192,6 +194,7 @@ const styles = StyleSheet.create({
   header: {
     padding: 16,
     paddingBottom: 8,
+    marginTop: 26,
   },
   searchbar: {
     marginBottom: 16,

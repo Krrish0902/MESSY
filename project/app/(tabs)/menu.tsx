@@ -8,32 +8,32 @@ import { Database } from '../../types/database';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 
-type Menu = Database['public']['Tables']['menus']['Row'];
+type WeeklyMenu = Database['public']['Tables']['weekly_menu']['Row'];
+
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+const MEALS = ['breakfast', 'lunch', 'dinner'] as const;
 
 export default function MenuTab() {
   const { user } = useAuth();
   const { theme } = useTheme();
-  const [menus, setMenus] = useState<Menu[]>([]);
+  const [weeklyMenu, setWeeklyMenu] = useState<WeeklyMenu | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingDay, setEditingDay] = useState<typeof DAYS[number]>('monday');
+  const [editingMeal, setEditingMeal] = useState<typeof MEALS[number]>('breakfast');
 
-  // Form state
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    meal_type: 'breakfast' as 'breakfast' | 'lunch' | 'dinner',
-    items: [{ name: '', description: '', is_veg: true }],
-    price: '',
-  });
+  // Form state for editing menu items
+  const [editItems, setEditItems] = useState<string[]>(['']);
 
   useEffect(() => {
     if (user?.role === 'mess_owner') {
-      fetchMenus();
+      fetchWeeklyMenu();
     }
   }, [user]);
 
-  const fetchMenus = async () => {
+  const fetchWeeklyMenu = async () => {
     try {
       // First get the user's mess
       const { data: messes } = await supabase
@@ -46,14 +46,18 @@ export default function MenuTab() {
         const messId = messes[0].id;
         
         const { data, error } = await supabase
-          .from('menus')
+          .from('weekly_menu')
           .select('*')
           .eq('mess_id', messId)
-          .order('date', { ascending: false })
-          .order('meal_type', { ascending: true });
+          .single();
 
-        if (error) throw error;
-        setMenus(data || []);
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+          throw error;
+        }
+        
+        setWeeklyMenu(data);
+      } else {
+        setWeeklyMenu(null);
       }
     } catch (err: any) {
       setError(err.message);
@@ -62,77 +66,68 @@ export default function MenuTab() {
     }
   };
 
-  const handleCreateMenu = async () => {
-    if (!formData.items[0].name || !formData.price) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
+  const handleSaveWeeklyMenu = async () => {
+    if (!weeklyMenu) return;
 
-    setCreating(true);
+    setSaving(true);
     try {
-      // Get the user's mess
-      const { data: messes } = await supabase
-        .from('messes')
-        .select('id')
-        .eq('owner_id', user?.id)
-        .eq('status', 'approved');
-
-      if (!messes || messes.length === 0) {
-        throw new Error('No approved mess found for this user');
+      // Remove id field if it's empty (for new records)
+      const menuToSave = { ...weeklyMenu };
+      if (!menuToSave.id || menuToSave.id === '') {
+        delete (menuToSave as any).id;
       }
 
-      const menuData = {
-        mess_id: messes[0].id,
-        date: formData.date,
-        meal_type: formData.meal_type,
-        items: formData.items,
-        price: parseFloat(formData.price),
-        is_available: true,
-      };
-
       const { error } = await supabase
-        .from('menus')
-        .insert(menuData);
+        .from('weekly_menu')
+        .upsert(menuToSave);
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Menu created successfully!');
-      setShowCreateDialog(false);
-      setFormData({
-        date: new Date().toISOString().split('T')[0],
-        meal_type: 'breakfast',
-        items: [{ name: '', description: '', is_veg: true }],
-        price: '',
-      });
-      fetchMenus();
+      Alert.alert('Success', 'Weekly menu saved successfully!');
+      setShowEditDialog(false);
+      fetchWeeklyMenu();
     } catch (err: any) {
       Alert.alert('Error', err.message);
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   };
 
-  const addMenuItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, { name: '', description: '', is_veg: true }]
-    }));
+  const handleEditMenu = (day: typeof DAYS[number], meal: typeof MEALS[number]) => {
+    setEditingDay(day);
+    setEditingMeal(meal);
+    
+    const fieldName = `${day}_${meal}_items` as keyof WeeklyMenu;
+    const currentItems = weeklyMenu?.[fieldName] as string[] || [];
+    setEditItems(currentItems.length > 0 ? currentItems : ['']);
+    
+    setShowEditDialog(true);
   };
 
-  const removeMenuItem = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index)
-    }));
+  const handleSaveEdit = () => {
+    if (!weeklyMenu) return;
+
+    const fieldName = `${editingDay}_${editingMeal}_items` as keyof WeeklyMenu;
+    const filteredItems = editItems.filter(item => item.trim() !== '');
+    
+    setWeeklyMenu({
+      ...weeklyMenu,
+      [fieldName]: filteredItems
+    });
+    
+    setShowEditDialog(false);
   };
 
-  const updateMenuItem = (index: number, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
+  const addEditItem = () => {
+    setEditItems([...editItems, '']);
+  };
+
+  const removeEditItem = (index: number) => {
+    setEditItems(editItems.filter((_, i) => i !== index));
+  };
+
+  const updateEditItem = (index: number, value: string) => {
+    setEditItems(editItems.map((item, i) => i === index ? value : item));
   };
 
   const getMealTypeColor = (mealType: string) => {
@@ -144,8 +139,22 @@ export default function MenuTab() {
     }
   };
 
+  const getDayDisplayName = (day: string) => {
+    return day.charAt(0).toUpperCase() + day.slice(1);
+  };
+
+  const getMealDisplayName = (meal: string) => {
+    return meal.charAt(0).toUpperCase() + meal.slice(1);
+  };
+
+  const getMenuItems = (day: typeof DAYS[number], meal: typeof MEALS[number]) => {
+    if (!weeklyMenu) return [];
+    const fieldName = `${day}_${meal}_items` as keyof WeeklyMenu;
+    return weeklyMenu[fieldName] as string[] || [];
+  };
+
   if (loading) {
-    return <LoadingSpinner message="Loading menus..." />;
+    return <LoadingSpinner message="Loading weekly menu..." />;
   }
 
   return (
@@ -153,184 +162,181 @@ export default function MenuTab() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.onBackground }]}>
-            Menu Management
+            Weekly Menu
           </Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Create and manage daily menus
+            Set your menu for the entire week
           </Text>
         </View>
 
         {error && (
-          <ErrorMessage message={error} onRetry={fetchMenus} />
+          <ErrorMessage message={error} onRetry={fetchWeeklyMenu} />
         )}
 
-        {menus.length === 0 ? (
+        {!weeklyMenu ? (
           <Card style={styles.emptyCard}>
             <Card.Content>
               <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                No menus created yet
+                No weekly menu created yet
               </Text>
               <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-                Create your first menu to start serving customers
+                Create your weekly menu to start serving customers
               </Text>
+              <Button 
+                mode="contained" 
+                onPress={async () => {
+                  try {
+                    if (!user?.id) return;
+                    const { data: messes } = await supabase
+                      .from('messes')
+                      .select('id')
+                      .eq('owner_id', user?.id)
+                      .eq('status', 'approved')
+                      .single();
+                    
+                    if (messes) {
+                      const initialMenu: Omit<WeeklyMenu, 'id' | 'created_at' | 'updated_at'> = {
+                        mess_id: messes.id,
+                        monday_breakfast_items: [],
+                        monday_lunch_items: [],
+                        monday_dinner_items: [],
+                        tuesday_breakfast_items: [],
+                        tuesday_lunch_items: [],
+                        tuesday_dinner_items: [],
+                        wednesday_breakfast_items: [],
+                        wednesday_lunch_items: [],
+                        wednesday_dinner_items: [],
+                        thursday_breakfast_items: [],
+                        thursday_lunch_items: [],
+                        thursday_dinner_items: [],
+                        friday_breakfast_items: [],
+                        friday_lunch_items: [],
+                        friday_dinner_items: [],
+                        saturday_breakfast_items: [],
+                        saturday_lunch_items: [],
+                        saturday_dinner_items: [],
+                        sunday_breakfast_items: [],
+                        sunday_lunch_items: [],
+                        sunday_dinner_items: [],
+                      };
+                      setWeeklyMenu(initialMenu as WeeklyMenu);
+                    }
+                  } catch (err: any) {
+                    Alert.alert('Error', err.message);
+                  }
+                }}
+                style={styles.createButton}
+              >
+                Create Weekly Menu
+              </Button>
             </Card.Content>
           </Card>
         ) : (
-          menus.map((menu) => (
-            <Card key={menu.id} style={styles.menuCard}>
-              <Card.Content>
-                <View style={styles.menuHeader}>
-                  <View style={styles.menuInfo}>
-                    <Text style={[styles.menuDate, { color: theme.colors.onSurface }]}>
-                      {new Date(menu.date).toLocaleDateString()}
-                    </Text>
-                                                              <Chip 
-                       mode="outlined"
-                     >
-                       {menu.meal_type.toUpperCase()}
-                     </Chip>
-                   </View>
-                   <View style={styles.menuStatus}>
-                     <Chip 
-                       mode={menu.is_available ? "flat" : "outlined"}
-                     >
-                       {menu.is_available ? 'Available' : 'Unavailable'}
-                     </Chip>
-                    <Text style={[styles.menuPrice, { color: theme.colors.primary }]}>
-                      ₹{menu.price}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.menuItems}>
-                  {menu.items.map((item, index) => (
-                    <View key={index} style={styles.menuItem}>
-                      <Text style={[styles.itemName, { color: theme.colors.onSurface }]}>
-                        {item.name}
-                      </Text>
-                      {item.description && (
-                        <Text style={[styles.itemDescription, { color: theme.colors.onSurfaceVariant }]}>
-                          {item.description}
-                        </Text>
-                      )}
-                                             <Chip mode="outlined">
-                         {item.is_veg ? 'Vegetarian' : 'Non-vegetarian'}
-                       </Chip>
-                    </View>
-                  ))}
-                </View>
-
-                <View style={styles.menuActions}>
-                  <Button mode="outlined" style={styles.actionButton}>
-                    Edit
-                  </Button>
-                  <Button mode="outlined" style={styles.actionButton}>
-                    {menu.is_available ? 'Make Unavailable' : 'Make Available'}
-                  </Button>
-                </View>
-              </Card.Content>
-            </Card>
-          ))
+          <View style={styles.weeklyGrid}>
+            {DAYS.map((day) => (
+              <Card key={day} style={styles.dayCard}>
+                <Card.Content>
+                  <Text style={[styles.dayTitle, { color: theme.colors.onSurface }]}>
+                    {getDayDisplayName(day)}
+                  </Text>
+                  
+                  {MEALS.map((meal) => {
+                    const items = getMenuItems(day, meal);
+                    return (
+                      <View key={meal} style={styles.mealSection}>
+                        <View style={styles.mealHeader}>
+                          <Chip 
+                            mode="outlined"
+                            style={{ backgroundColor: getMealTypeColor(meal) + '20' }}
+                            textStyle={{ color: getMealTypeColor(meal) }}
+                          >
+                            {getMealDisplayName(meal)}
+                          </Chip>
+                          <Button 
+                            mode="text" 
+                            onPress={() => handleEditMenu(day, meal)}
+                            style={styles.editButton}
+                          >
+                            Edit
+                          </Button>
+                        </View>
+                        
+                        {items.length > 0 ? (
+                          <View style={styles.menuItems}>
+                            {items.map((item, index) => (
+                              <Text key={index} style={[styles.menuItem, { color: theme.colors.onSurfaceVariant }]}>
+                                • {item}
+                              </Text>
+                            ))}
+                          </View>
+                        ) : (
+                          <Text style={[styles.emptyMeal, { color: theme.colors.onSurfaceVariant }]}>
+                            No items set
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </Card.Content>
+              </Card>
+            ))}
+          </View>
         )}
       </ScrollView>
 
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => setShowCreateDialog(true)}
-      />
+      {weeklyMenu && (
+        <FAB
+          icon="content-save"
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          onPress={handleSaveWeeklyMenu}
+        />
+      )}
 
-      {/* Create Menu Dialog */}
+      {/* Edit Menu Dialog */}
       <Portal>
-        <Dialog visible={showCreateDialog} onDismiss={() => setShowCreateDialog(false)}>
-          <Dialog.Title>Create New Menu</Dialog.Title>
+        <Dialog visible={showEditDialog} onDismiss={() => setShowEditDialog(false)}>
+          <Dialog.Title>
+            Edit {getDayDisplayName(editingDay)} - {getMealDisplayName(editingMeal)}
+          </Dialog.Title>
           <Dialog.Content>
             <ScrollView>
-              <TextInput
-                label="Date"
-                value={formData.date}
-                onChangeText={(text) => setFormData({ ...formData, date: text })}
-                style={styles.input}
-              />
-              
-              <SegmentedButtons
-                value={formData.meal_type}
-                onValueChange={(value) => setFormData({ ...formData, meal_type: value as any })}
-                buttons={[
-                  { value: 'breakfast', label: 'Breakfast' },
-                  { value: 'lunch', label: 'Lunch' },
-                  { value: 'dinner', label: 'Dinner' },
-                ]}
-                style={styles.mealTypeSelector}
-              />
-
-              <TextInput
-                label="Price (₹)"
-                value={formData.price}
-                onChangeText={(text) => setFormData({ ...formData, price: text })}
-                keyboardType="numeric"
-                style={styles.input}
-              />
-
               <Text style={styles.sectionTitle}>Menu Items</Text>
               
-              {formData.items.map((item, index) => (
-                <Card key={index} style={styles.itemCard}>
-                  <Card.Content>
-                    <TextInput
-                      label="Item Name *"
-                      value={item.name}
-                      onChangeText={(text) => updateMenuItem(index, 'name', text)}
-                      style={styles.input}
-                    />
-                    <TextInput
-                      label="Description"
-                      value={item.description}
-                      onChangeText={(text) => updateMenuItem(index, 'description', text)}
-                      multiline
-                      numberOfLines={2}
-                      style={styles.input}
-                    />
-                    <View style={styles.itemOptions}>
-                      <SegmentedButtons
-                        value={item.is_veg ? 'veg' : 'non-veg'}
-                        onValueChange={(value) => updateMenuItem(index, 'is_veg', value === 'veg')}
-                        buttons={[
-                          { value: 'veg', label: 'Vegetarian' },
-                          { value: 'non-veg', label: 'Non-veg' },
-                        ]}
-                        style={styles.vegSelector}
-                      />
-                      <Button 
-                        mode="outlined" 
-                        onPress={() => removeMenuItem(index)}
-                        style={styles.removeButton}
-                      >
-                        Remove
-                      </Button>
-                    </View>
-                  </Card.Content>
-                </Card>
+              {editItems.map((item, index) => (
+                <View key={index} style={styles.editItemRow}>
+                  <TextInput
+                    label={`Item ${index + 1}`}
+                    value={item}
+                    onChangeText={(text) => updateEditItem(index, text)}
+                    style={styles.editInput}
+                  />
+                  <Button 
+                    mode="outlined" 
+                    onPress={() => removeEditItem(index)}
+                    style={styles.removeButton}
+                    disabled={editItems.length === 1}
+                  >
+                    Remove
+                  </Button>
+                </View>
               ))}
 
               <Button 
                 mode="outlined" 
-                onPress={addMenuItem}
+                onPress={addEditItem}
                 style={styles.addButton}
               >
-                Add Menu Item
+                Add Item
               </Button>
             </ScrollView>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button onPress={() => setShowEditDialog(false)}>Cancel</Button>
             <Button 
               mode="contained" 
-              onPress={handleCreateMenu}
-              loading={creating}
-              disabled={creating}
+              onPress={handleSaveEdit}
             >
-              Create Menu
+              Save
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -349,6 +355,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+    marginTop: 26,
   },
   title: {
     fontSize: 28,
@@ -371,54 +378,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
   },
-  menuCard: {
+  createButton: {
+    marginTop: 16,
+  },
+  weeklyGrid: {
+    marginTop: 16,
+  },
+  dayCard: {
     marginBottom: 16,
     elevation: 2,
   },
-  menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  dayTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     marginBottom: 12,
   },
-  menuInfo: {
-    flex: 1,
+  mealSection: {
+    marginBottom: 12,
   },
-  menuDate: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  mealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  menuStatus: {
-    alignItems: 'flex-end',
-  },
-  menuPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 4,
+  editButton: {
+    marginLeft: 8,
   },
   menuItems: {
-    marginBottom: 16,
+    marginLeft: 16,
   },
   menuItem: {
-    marginBottom: 8,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  itemDescription: {
     fontSize: 14,
     marginBottom: 4,
   },
-  menuActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  actionButton: {
-    flex: 1,
-    marginHorizontal: 4,
+  emptyMeal: {
+    fontSize: 14,
+    marginLeft: 16,
   },
   fab: {
     position: 'absolute',
@@ -426,27 +422,19 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  input: {
-    marginBottom: 16,
-  },
-  mealTypeSelector: {
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 12,
   },
-  itemCard: {
-    marginBottom: 12,
-  },
-  itemOptions: {
+  editItemRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  vegSelector: {
+  editInput: {
     flex: 1,
+    marginRight: 8,
   },
   removeButton: {
     marginLeft: 8,

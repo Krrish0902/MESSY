@@ -50,25 +50,43 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['messes']['Row'], 'id' | 'created_at' | 'updated_at' | 'rating_average' | 'rating_count'>;
         Update: Partial<Database['public']['Tables']['messes']['Insert']>;
       };
-      menus: {
+      weekly_menu: {
         Row: {
           id: string;
           mess_id: string;
-          date: string;
-          meal_type: 'breakfast' | 'lunch' | 'dinner';
-          items: {
-            name: string;
-            description?: string;
-            image_url?: string;
-            is_veg: boolean;
-          }[];
-          price: number;
-          is_available: boolean;
+          // Monday
+          monday_breakfast_items: string[];
+          monday_lunch_items: string[];
+          monday_dinner_items: string[];
+          // Tuesday
+          tuesday_breakfast_items: string[];
+          tuesday_lunch_items: string[];
+          tuesday_dinner_items: string[];
+          // Wednesday
+          wednesday_breakfast_items: string[];
+          wednesday_lunch_items: string[];
+          wednesday_dinner_items: string[];
+          // Thursday
+          thursday_breakfast_items: string[];
+          thursday_lunch_items: string[];
+          thursday_dinner_items: string[];
+          // Friday
+          friday_breakfast_items: string[];
+          friday_lunch_items: string[];
+          friday_dinner_items: string[];
+          // Saturday
+          saturday_breakfast_items: string[];
+          saturday_lunch_items: string[];
+          saturday_dinner_items: string[];
+          // Sunday
+          sunday_breakfast_items: string[];
+          sunday_lunch_items: string[];
+          sunday_dinner_items: string[];
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['menus']['Row'], 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Database['public']['Tables']['menus']['Insert']>;
+        Insert: Omit<Database['public']['Tables']['weekly_menu']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['weekly_menu']['Insert']>;
       };
       subscriptions: {
         Row: {

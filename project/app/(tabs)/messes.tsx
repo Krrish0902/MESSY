@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, Chip, Searchbar, Dialog, Portal } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
@@ -15,6 +16,7 @@ type Mess = Database['public']['Tables']['messes']['Row'] & {
 export default function MessesTab() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const router = useRouter();
   const [messes, setMesses] = useState<Mess[]>([]);
   const [filteredMesses, setFilteredMesses] = useState<Mess[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +100,10 @@ export default function MessesTab() {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const navigateToMessDetails = (messId: string) => {
+    router.push(`/mess-details?messId=${messId}` as any);
   };
 
   if (loading) {
@@ -212,10 +218,7 @@ export default function MessesTab() {
                 <View style={styles.messActions}>
                   <Button 
                     mode="outlined" 
-                    onPress={() => {
-                      setSelectedMess(mess);
-                      setShowDetailsDialog(true);
-                    }}
+                    onPress={() => navigateToMessDetails(mess.id)}
                     style={styles.actionButton}
                   >
                     View Details
@@ -253,90 +256,6 @@ export default function MessesTab() {
           ))
         )}
       </ScrollView>
-
-      {/* Mess Details Dialog */}
-      <Portal>
-        <Dialog visible={showDetailsDialog} onDismiss={() => setShowDetailsDialog(false)}>
-          <Dialog.Title>Mess Details</Dialog.Title>
-          <Dialog.Content>
-            {selectedMess && (
-              <ScrollView>
-                <Text style={styles.detailLabel}>Name:</Text>
-                <Text style={styles.detailValue}>{selectedMess.name}</Text>
-                
-                <Text style={styles.detailLabel}>Owner:</Text>
-                <Text style={styles.detailValue}>{selectedMess.users.full_name}</Text>
-                
-                <Text style={styles.detailLabel}>Email:</Text>
-                <Text style={styles.detailValue}>{selectedMess.users.email}</Text>
-                
-                <Text style={styles.detailLabel}>Phone:</Text>
-                <Text style={styles.detailValue}>{selectedMess.phone}</Text>
-                
-                <Text style={styles.detailLabel}>Address:</Text>
-                <Text style={styles.detailValue}>{selectedMess.address}</Text>
-                
-                <Text style={styles.detailLabel}>Description:</Text>
-                <Text style={styles.detailValue}>{selectedMess.description}</Text>
-                
-                <Text style={styles.detailLabel}>Operating Hours:</Text>
-                <Text style={styles.detailValue}>
-                  {selectedMess.operating_hours.open_time} - {selectedMess.operating_hours.close_time}
-                </Text>
-                <Text style={styles.detailValue}>
-                  Days: {selectedMess.operating_hours.days.join(', ')}
-                </Text>
-                
-                <Text style={styles.detailLabel}>Delivery Radius:</Text>
-                <Text style={styles.detailValue}>{selectedMess.delivery_radius} km</Text>
-                
-                <Text style={styles.detailLabel}>Status:</Text>
-                <Chip 
-                  mode="outlined"
-                >
-                  {selectedMess.status.toUpperCase()}
-                </Chip>
-              </ScrollView>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowDetailsDialog(false)}>Close</Button>
-            {selectedMess?.status === 'pending' && (
-              <>
-                <Button 
-                  mode="contained"
-                  onPress={() => handleStatusUpdate(selectedMess.id, 'approved')}
-                  loading={updating}
-                  disabled={updating}
-                  style={{ backgroundColor: theme.colors.success }}
-                >
-                  Approve
-                </Button>
-                <Button 
-                  mode="contained"
-                  onPress={() => handleStatusUpdate(selectedMess.id, 'rejected')}
-                  loading={updating}
-                  disabled={updating}
-                  style={{ backgroundColor: theme.colors.error }}
-                >
-                  Reject
-                </Button>
-              </>
-            )}
-            {selectedMess?.status === 'approved' && (
-              <Button 
-                mode="contained"
-                onPress={() => handleStatusUpdate(selectedMess.id, 'suspended')}
-                loading={updating}
-                disabled={updating}
-                style={{ backgroundColor: theme.colors.error }}
-              >
-                Suspend
-              </Button>
-            )}
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </View>
   );
 }
@@ -351,6 +270,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+    marginTop: 26,
   },
   title: {
     fontSize: 28,

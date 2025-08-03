@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, Button, FAB } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Database } from '../../types/database';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -19,10 +20,12 @@ type Delivery = Database['public']['Tables']['deliveries']['Row'] & {
 export default function HomeTab() {
   const { user } = useAuth();
   const { theme } = useTheme();
+  const router = useRouter();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  
 
   useEffect(() => {
     if (user?.role === 'customer') {
@@ -98,7 +101,10 @@ export default function HomeTab() {
                 <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
                   No meals scheduled for today
                 </Text>
-                <Button mode="outlined" style={styles.exploreButton}>
+                <Button 
+                  mode="outlined" 
+                  style={styles.exploreButton}
+                  onPress={() => router.push(`/discover` as any)}>
                   Explore Messes
                 </Button>
               </Card.Content>
@@ -145,6 +151,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 24,
+    marginTop: 26,
   },
   greeting: {
     fontSize: 24,

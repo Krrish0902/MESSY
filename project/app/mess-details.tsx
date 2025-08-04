@@ -15,6 +15,7 @@ type Mess = Database['public']['Tables']['messes']['Row'] & {
 };
 
 type WeeklyMenu = Database['public']['Tables']['weekly_menu']['Row'];
+type SubscriptionPlan = Database['public']['Tables']['subscription_plans']['Row'];
 type Rating = Database['public']['Tables']['ratings']['Row'] & {
   users: Database['public']['Tables']['users']['Row'];
 };
@@ -22,6 +23,7 @@ type Rating = Database['public']['Tables']['ratings']['Row'] & {
 interface MessDetails {
   mess: Mess;
   weeklyMenu: WeeklyMenu | null;
+  subscriptionPlans: SubscriptionPlan[];
   ratings: Rating[];
   distance?: number;
 }
@@ -36,6 +38,7 @@ export default function MessDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showPlansView, setShowPlansView] = useState(false);
   const [showMenuView, setShowMenuView] = useState(false);
 
   useEffect(() => {
@@ -92,6 +95,16 @@ export default function MessDetailsPage() {
         throw weeklyMenuError;
       }
 
+      // Fetch subscription plans
+      const { data: subscriptionPlansData, error: subscriptionPlansError } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('mess_id', messId)
+        .eq('is_active', true)
+        .order('total_price', { ascending: true });
+
+      if (subscriptionPlansError) throw subscriptionPlansError;
+
       // Fetch ratings with user details
       const { data: ratingsData, error: ratingsError } = await supabase
         .from('ratings')
@@ -122,6 +135,7 @@ export default function MessDetailsPage() {
       setMessDetails({
         mess: messData,
         weeklyMenu: weeklyMenuData || null,
+        subscriptionPlans: subscriptionPlansData || [],
         ratings: ratingsData || [],
         distance,
       });
@@ -139,6 +153,12 @@ export default function MessDetailsPage() {
 
   const handleViewMenu = () => {
     setShowMenuView(true);
+    setShowPlansView(false);
+  };
+
+  const handleViewPlans = () => {
+    setShowPlansView(true);
+    setShowMenuView(false);
   };
 
   const handleAdminAction = async (action: 'approve' | 'reject' | 'suspend') => {
@@ -175,6 +195,12 @@ export default function MessDetailsPage() {
 
   const getMealDisplayName = (meal: string) => {
     return meal.charAt(0).toUpperCase() + meal.slice(1);
+  };
+
+  const getPlanDetails = (plan: SubscriptionPlan) => {
+    const daysText = plan.days_of_week.length === 7 ? 'All days' : `${plan.days_of_week.length} days`;
+    const mealsText = plan.meals_included.length === 3 ? 'All meals' : `${plan.meals_included.length} meals`;
+    return `${daysText} • ${mealsText} • ${plan.duration_type}`;
   };
 
   const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
@@ -253,25 +279,7 @@ export default function MessDetailsPage() {
           <ErrorMessage message={error} onRetry={fetchMessDetails} />
         )}
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <Button 
-            mode="outlined" 
-            onPress={handleViewMenu}
-            style={styles.actionButton}
-            icon="food"
-          >
-            View Menu
-          </Button>
-          <Button 
-            mode="contained" 
-            onPress={handleSubscribe}
-            style={styles.actionButton}
-            icon="plus"
-          >
-            Subscribe Now
-          </Button>
-        </View>
+
 
         {/* Admin Action Buttons */}
         {user?.role === 'admin' && (
@@ -319,58 +327,25 @@ export default function MessDetailsPage() {
           </View>
         )}
 
-        {/* Basic Information */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-              About This Mess
-            </Text>
-            <Divider style={styles.divider} />
-            
-            <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              {messDetails.mess.description}
-            </Text>
-            
-            <List.Item
-              title="Phone"
-              description={messDetails.mess.phone}
-              left={props => <List.Icon {...props} icon="phone" />}
-            />
-            {messDetails.mess.email && (
-              <List.Item
-                title="Email"
-                description={messDetails.mess.email}
-                left={props => <List.Icon {...props} icon="email" />}
-              />
-            )}
-            <List.Item
-              title="Delivery Radius"
-              description={`${messDetails.mess.delivery_radius} km`}
-              left={props => <List.Icon {...props} icon="map-marker-radius" />}
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Operating Hours */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-              Operating Hours
-            </Text>
-            <Divider style={styles.divider} />
-            
-            <List.Item
-              title="Hours"
-              description={formatOperatingHours(messDetails.mess.operating_hours)}
-              left={props => <List.Icon {...props} icon="clock" />}
-            />
-            <List.Item
-              title="Days"
-              description={formatDays(messDetails.mess.operating_hours?.days)}
-              left={props => <List.Icon {...props} icon="calendar-week" />}
-            />
-          </Card.Content>
-        </Card>
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <Button 
+            mode="outlined" 
+            onPress={handleViewMenu}
+            style={styles.actionButton}
+            icon="food"
+          >
+            View Menu
+          </Button>
+          <Button 
+            mode="outlined" 
+            onPress={handleViewPlans}
+            style={styles.actionButton}
+            icon="calendar"
+          >
+            View Plans
+          </Button>
+        </View>
 
         {/* Weekly Menu View */}
         {showMenuView && (
@@ -449,6 +424,114 @@ export default function MessDetailsPage() {
           </Card>
         )}
 
+        {/* Subscription Plans View */}
+        {showPlansView && (
+          <Card style={styles.sectionCard}>
+            <Card.Content>
+              <View style={styles.plansHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+                  Available Plans
+                </Text>
+                <Button 
+                  mode="text" 
+                  onPress={() => setShowPlansView(false)}
+                  icon="close"
+                >
+                  Close
+                </Button>
+              </View>
+              <Divider style={styles.divider} />
+              
+              {messDetails.subscriptionPlans.length === 0 ? (
+                <View style={styles.emptyPlansState}>
+                  <Text style={[styles.emptyPlansIcon, { color: theme.colors.onSurfaceVariant }]}>
+                    📋
+                  </Text>
+                  <Text style={[styles.emptyPlansTitle, { color: theme.colors.onSurface }]}>
+                    No Plans Available
+                  </Text>
+                  <Text style={[styles.emptyPlansText, { color: theme.colors.onSurfaceVariant }]}>
+                    This mess hasn't created any subscription plans yet.
+                  </Text>
+                </View>
+              ) : (
+                messDetails.subscriptionPlans.map((plan) => (
+                  <Card key={plan.id} style={styles.planCard}>
+                    <Card.Content>
+                      <View style={styles.planHeader}>
+                        <View style={styles.planInfo}>
+                          <Text style={[styles.planName, { color: theme.colors.onSurface }]}>
+                            {plan.name}
+                          </Text>
+                          <Text style={[styles.planDescription, { color: theme.colors.onSurfaceVariant }]}>
+                            {plan.description || getPlanDetails(plan)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.planPrice, { color: theme.colors.primary }]}>
+                          ₹{plan.total_price}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.planDetails}>
+                        <Chip mode="outlined" style={styles.planChip}>
+                          {plan.duration_type}
+                        </Chip>
+                        <Chip mode="outlined" style={styles.planChip}>
+                          {plan.days_of_week.length} days
+                        </Chip>
+                        <Chip mode="outlined" style={styles.planChip}>
+                          {plan.meals_included.length} meals
+                        </Chip>
+                      </View>
+                      
+                      <Button
+                        mode="contained"
+                        onPress={handleSubscribe}
+                        style={styles.subscribeButton}
+                        icon="plus"
+                      >
+                        Subscribe to This Plan
+                      </Button>
+                    </Card.Content>
+                  </Card>
+                ))
+              )}
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Basic Information */}
+        <Card style={styles.sectionCard}>
+          <Card.Content>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+              About This Mess
+            </Text>
+            <Divider style={styles.divider} />
+            
+            <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
+              {messDetails.mess.description}
+            </Text>
+            
+            <List.Item
+              title="Phone"
+              description={messDetails.mess.phone}
+              left={props => <List.Icon {...props} icon="phone" />}
+            />
+            {messDetails.mess.email && (
+              <List.Item
+                title="Email"
+                description={messDetails.mess.email}
+                left={props => <List.Icon {...props} icon="email" />}
+              />
+            )}
+            <List.Item
+              title="Delivery Radius"
+              description={`${messDetails.mess.delivery_radius} km`}
+              left={props => <List.Icon {...props} icon="map-marker-radius" />}
+            />
+          </Card.Content>
+        </Card>
+
         {/* Recent Reviews */}
         {messDetails.ratings.length > 0 && (
           <Card style={styles.sectionCard}>
@@ -479,6 +562,27 @@ export default function MessDetailsPage() {
             </Card.Content>
           </Card>
         )}
+
+        {/* Operating Hours */}
+        <Card style={styles.sectionCard}>
+          <Card.Content>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+              Operating Hours
+            </Text>
+            <Divider style={styles.divider} />
+            
+            <List.Item
+              title="Hours"
+              description={formatOperatingHours(messDetails.mess.operating_hours)}
+              left={props => <List.Icon {...props} icon="clock" />}
+            />
+            <List.Item
+              title="Days"
+              description={formatDays(messDetails.mess.operating_hours?.days)}
+              left={props => <List.Icon {...props} icon="calendar-week" />}
+            />
+          </Card.Content>
+        </Card>
 
         {/* Owner Information */}
         <Card style={styles.sectionCard}>
@@ -598,6 +702,67 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
     marginTop: 50,
+  },
+  plansHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  emptyPlansState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyPlansIcon: {
+    fontSize: 50,
+    marginBottom: 10,
+  },
+  emptyPlansTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  emptyPlansText: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#666',
+  },
+  planCard: {
+    marginBottom: 12,
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  planInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  planName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  planDescription: {
+    fontSize: 14,
+  },
+  planPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  planDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  planChip: {
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  subscribeButton: {
+    marginTop: 8,
   },
   menuHeader: {
     flexDirection: 'row',

@@ -10,8 +10,8 @@ export const ROLE_PERMISSIONS = {
     defaultScreen: 'home' as const
   },
   mess_owner: {
-    screens: ['dashboard', 'menu', 'subscribers', 'notifications', 'profile'] as const,
-    features: ['manage_mess', 'manage_menu', 'view_subscribers', 'view_notifications', 'edit_profile'] as const,
+    screens: ['dashboard', 'menu', 'meal-pricing', 'subscribers', 'notifications', 'profile'] as const,
+    features: ['manage_mess', 'manage_menu', 'manage_pricing', 'view_subscribers', 'view_notifications', 'edit_profile'] as const,
     defaultScreen: 'dashboard' as const
   },
   admin: {

@@ -88,6 +88,37 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['weekly_menu']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['weekly_menu']['Insert']>;
       };
+      meal_pricing: {
+        Row: {
+          id: string;
+          mess_id: string;
+          breakfast_price: number;
+          lunch_price: number;
+          dinner_price: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['meal_pricing']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['meal_pricing']['Insert']>;
+      };
+      subscription_plans: {
+        Row: {
+          id: string;
+          mess_id: string;
+          name: string;
+          description?: string;
+          days_of_week: string[];
+          meals_included: string[];
+          total_price: number;
+          duration_type: 'weekly' | 'monthly';
+          duration_weeks: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['subscription_plans']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['subscription_plans']['Insert']>;
+      };
       subscriptions: {
         Row: {
           id: string;

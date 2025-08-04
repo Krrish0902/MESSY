@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Search, Calendar, User, Settings, Bell, Users } from 'lucide-react-native';
+import { Home, Search, Calendar, User, Settings, Bell, Users, Clock } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRoleBasedNavigation } from '../../hooks/useRoleBasedNavigation';
@@ -74,6 +74,14 @@ export default function TabLayout() {
           title: 'Menu',
           tabBarIcon: ({ size, color }) => <Calendar size={size} color={color} />,
           href: isValidScreen('menu') ? '/(tabs)/menu' : null,
+        }}
+      />
+      <Tabs.Screen
+        name="meal-pricing"
+        options={{
+          title: 'Plans',
+          tabBarIcon: ({ size, color }) => <Clock size={size} color={color} />,
+          href: isValidScreen('meal-pricing') ? '/(tabs)/meal-pricing' : null,
         }}
       />
       <Tabs.Screen

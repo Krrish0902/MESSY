@@ -265,7 +265,8 @@ export default function MessDetailsPage() {
                     messDetails.mess.status === 'approved' ? theme.colors.success :
                     messDetails.mess.status === 'pending' ? theme.colors.warning :
                     theme.colors.error,
-                  marginTop: 8
+                  marginTop: 8,
+                  width: 110,
                 }}
                 textStyle={{ color: theme.colors.surface }}
               >
@@ -463,9 +464,7 @@ export default function MessDetailsPage() {
                           <Text style={[styles.planName, { color: theme.colors.onSurface }]}>
                             {plan.name}
                           </Text>
-                          <Text style={[styles.planDescription, { color: theme.colors.onSurfaceVariant }]}>
-                            {plan.description || getPlanDetails(plan)}
-                          </Text>
+
                         </View>
                         <Text style={[styles.planPrice, { color: theme.colors.primary }]}>
                           ₹{plan.total_price}
@@ -625,6 +624,7 @@ const styles = StyleSheet.create({
   },
   messAvatar: {
     marginRight: 16,
+    marginTop: 25,
   },
   headerInfo: {
     flex: 1,

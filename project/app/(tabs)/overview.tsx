@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, Button, Chip, DataTable } from 'react-native-paper';
+import { Text, Card, Button, Chip, DataTable, Divider } from 'react-native-paper';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { supabase } from '../../lib/supabase';
@@ -110,14 +110,25 @@ export default function OverviewTab() {
   return (
     <ProtectedRoute requiredRole="admin" requiredPermission="system_management">
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <ScrollView style={styles.scrollView}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Header Section */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.colors.onBackground }]}>
-              System Overview
-            </Text>
-            <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-              Welcome back, {user?.full_name}
-            </Text>
+            <View style={styles.headerContent}>
+              <Text style={[styles.title, { color: theme.colors.onBackground }]}>
+                System Overview
+              </Text>
+              <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+                Welcome back, {user?.full_name}
+              </Text>
+              <Text style={[styles.dateText, { color: theme.colors.onSurfaceVariant }]}>
+                {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </Text>
+            </View>
           </View>
 
           {error && (
@@ -126,83 +137,135 @@ export default function OverviewTab() {
 
           {/* Statistics Cards */}
           <View style={styles.statsGrid}>
-            <Card style={styles.statCard}>
-              <Card.Content>
-                <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
-                  {stats.totalUsers}
-                </Text>
-                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Total Users
-                </Text>
+            <Card style={[styles.statCard, { backgroundColor: theme.colors.surface }]} elevation={4}>
+              <Card.Content style={styles.statCardContent}>
+                <View style={[styles.statIcon, { backgroundColor: theme.colors.primaryContainer }]}>
+                  <Text style={[styles.statIconText, { color: theme.colors.onPrimaryContainer }]}>
+                    👥
+                  </Text>
+                </View>
+                <View style={styles.statInfo}>
+                  <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
+                    {stats.totalUsers.toLocaleString()}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    Total Users
+                  </Text>
+                </View>
               </Card.Content>
             </Card>
 
-            <Card style={styles.statCard}>
-              <Card.Content>
-                <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
-                  {stats.totalMesses}
-                </Text>
-                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Total Messes
-                </Text>
+            <Card style={[styles.statCard, { backgroundColor: theme.colors.surface }]} elevation={4}>
+              <Card.Content style={styles.statCardContent}>
+                <View style={[styles.statIcon, { backgroundColor: theme.colors.secondaryContainer }]}>
+                  <Text style={[styles.statIconText, { color: theme.colors.onSecondaryContainer }]}>
+                    🏠
+                  </Text>
+                </View>
+                <View style={styles.statInfo}>
+                  <Text style={[styles.statNumber, { color: theme.colors.secondary }]}>
+                    {stats.totalMesses.toLocaleString()}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    Total Messes
+                  </Text>
+                </View>
               </Card.Content>
             </Card>
 
-            <Card style={styles.statCard}>
-              <Card.Content>
-                <Text style={[styles.statNumber, { color: theme.colors.warning }]}>
-                  {stats.pendingMesses}
-                </Text>
-                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Pending Approval
-                </Text>
+            <Card style={[styles.statCard, { backgroundColor: theme.colors.surface }]} elevation={4}>
+              <Card.Content style={styles.statCardContent}>
+                <View style={[styles.statIcon, { backgroundColor: theme.colors.tertiaryContainer }]}>
+                  <Text style={[styles.statIconText, { color: theme.colors.onTertiaryContainer }]}>
+                    ⏳
+                  </Text>
+                </View>
+                <View style={styles.statInfo}>
+                  <Text style={[styles.statNumber, { color: theme.colors.tertiary }]}>
+                    {stats.pendingMesses.toLocaleString()}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    Pending Approval
+                  </Text>
+                </View>
               </Card.Content>
             </Card>
 
-            <Card style={styles.statCard}>
-              <Card.Content>
-                <Text style={[styles.statNumber, { color: theme.colors.success }]}>
-                  {stats.activeSubscriptions}
-                </Text>
-                <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                  Active Subscriptions
-                </Text>
+            <Card style={[styles.statCard, { backgroundColor: theme.colors.surface }]} elevation={4}>
+              <Card.Content style={styles.statCardContent}>
+                <View style={[styles.statIcon, { backgroundColor: theme.colors.primaryContainer }]}>
+                  <Text style={[styles.statIconText, { color: theme.colors.onPrimaryContainer }]}>
+                    ✅
+                  </Text>
+                </View>
+                <View style={styles.statInfo}>
+                  <Text style={[styles.statNumber, { color: theme.colors.success }]}>
+                    {stats.activeSubscriptions.toLocaleString()}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    Active Subscriptions
+                  </Text>
+                </View>
               </Card.Content>
             </Card>
           </View>
 
           {/* Recent Users */}
-          <Card style={styles.sectionCard}>
+          <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]} elevation={4}>
             <Card.Content>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                  Recent Users
-                </Text>
-                <Button mode="text" onPress={() => {}}>
+                <View style={styles.sectionTitleContainer}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+                    Recent Users
+                  </Text>
+                  <Text style={[styles.sectionSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                    Latest registered users
+                  </Text>
+                </View>
+                <Button mode="text" onPress={() => {}} style={styles.viewAllButton}>
                   View All
                 </Button>
               </View>
               
+              <Divider style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+              
               <DataTable>
                 <DataTable.Header>
-                  <DataTable.Title>Name</DataTable.Title>
-                  <DataTable.Title>Role</DataTable.Title>
-                  <DataTable.Title>Status</DataTable.Title>
+                  <DataTable.Title>
+                    <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>
+                      Name
+                    </Text>
+                  </DataTable.Title>
+                  <DataTable.Title>
+                    <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>
+                      Role
+                    </Text>
+                  </DataTable.Title>
+                  <DataTable.Title>
+                    <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>
+                      Status
+                    </Text>
+                  </DataTable.Title>
                 </DataTable.Header>
 
                 {stats.recentUsers.map((user) => (
-                  <DataTable.Row key={user.id}>
-                    <DataTable.Cell>{user.full_name}</DataTable.Cell>
+                  <DataTable.Row key={user.id} style={styles.tableRow}>
                     <DataTable.Cell>
-                      <Chip size="small" mode="outlined">
+                      <Text style={[styles.tableCellText, { color: theme.colors.onSurface }]}>
+                        {user.full_name}
+                      </Text>
+                    </DataTable.Cell>
+                    <DataTable.Cell>
+                      <Chip mode="outlined" style={[styles.roleChip, { backgroundColor: theme.colors.surfaceVariant }]}>
                         {user.role}
                       </Chip>
                     </DataTable.Cell>
                     <DataTable.Cell>
                       <Chip 
-                        size="small" 
                         mode={user.is_active ? "flat" : "outlined"}
-                        textColor={user.is_active ? theme.colors.success : theme.colors.error}
+                        style={[styles.statusChip, { 
+                          backgroundColor: user.is_active ? theme.colors.success : theme.colors.error,
+                        }]}
                       >
                         {user.is_active ? 'Active' : 'Inactive'}
                       </Chip>
@@ -214,42 +277,69 @@ export default function OverviewTab() {
           </Card>
 
           {/* Recent Messes */}
-          <Card style={styles.sectionCard}>
+          <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]} elevation={4}>
             <Card.Content>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-                  Recent Messes
-                </Text>
-                <Button mode="text" onPress={() => {}}>
+                <View style={styles.sectionTitleContainer}>
+                  <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+                    Recent Messes
+                  </Text>
+                  <Text style={[styles.sectionSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                    Latest registered messes
+                  </Text>
+                </View>
+                <Button mode="text" onPress={() => {}} style={styles.viewAllButton}>
                   View All
                 </Button>
               </View>
               
+              <Divider style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+              
               <DataTable>
                 <DataTable.Header>
-                  <DataTable.Title>Name</DataTable.Title>
-                  <DataTable.Title>Status</DataTable.Title>
-                  <DataTable.Title>Rating</DataTable.Title>
+                  <DataTable.Title>
+                    <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>
+                      Name
+                    </Text>
+                  </DataTable.Title>
+                  <DataTable.Title>
+                    <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>
+                      Status
+                    </Text>
+                  </DataTable.Title>
+                  <DataTable.Title>
+                    <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>
+                      Rating
+                    </Text>
+                  </DataTable.Title>
                 </DataTable.Header>
 
                 {stats.recentMesses.map((mess) => (
-                  <DataTable.Row key={mess.id}>
-                    <DataTable.Cell>{mess.name}</DataTable.Cell>
+                  <DataTable.Row key={mess.id} style={styles.tableRow}>
+                    <DataTable.Cell>
+                      <Text style={[styles.tableCellText, { color: theme.colors.onSurface }]}>
+                        {mess.name}
+                      </Text>
+                    </DataTable.Cell>
                     <DataTable.Cell>
                       <Chip 
-                        size="small" 
                         mode="outlined"
-                        textColor={
-                          mess.status === 'approved' ? theme.colors.success :
-                          mess.status === 'pending' ? theme.colors.warning :
-                          theme.colors.error
-                        }
+                        style={[styles.statusChip, {
+                          backgroundColor: 
+                            mess.status === 'approved' ? theme.colors.success :
+                            mess.status === 'pending' ? theme.colors.warning :
+                            theme.colors.error,
+                        }]}
                       >
-                        {mess.status}
+                        {mess.status === 'approved' ? 'Approved' : 'Pending'}
                       </Chip>
                     </DataTable.Cell>
                     <DataTable.Cell>
-                      ⭐ {mess.rating_average.toFixed(1)}
+                      <View style={styles.ratingContainer}>
+                        <Text style={[styles.ratingText, { color: theme.colors.warning }]}>
+                          ⭐ {mess.rating_average.toFixed(1)}
+                        </Text>
+                      </View>
                     </DataTable.Cell>
                   </DataTable.Row>
                 ))}
@@ -274,6 +364,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 26,
   },
+  headerContent: {
+    alignItems: 'center',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -281,6 +374,10 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+  },
+  dateText: {
+    fontSize: 14,
+    marginTop: 4,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -292,6 +389,25 @@ const styles = StyleSheet.create({
     width: '48%',
     marginBottom: 16,
     elevation: 2,
+  },
+  statCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  statIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  statIconText: {
+    fontSize: 28,
+  },
+  statInfo: {
+    flex: 1,
   },
   statNumber: {
     fontSize: 32,
@@ -311,8 +427,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  sectionTitleContainer: {
+    flex: 1,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  viewAllButton: {
+    paddingHorizontal: 0,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  tableHeaderText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  tableRow: {
+    height: 60,
+  },
+  tableCellText: {
+    fontSize: 15,
+  },
+  roleChip: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    width: 90,
+  },
+  statusChip: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    width: 90,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 14,
   },
 }); 

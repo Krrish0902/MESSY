@@ -19,6 +19,14 @@ export default function DashboardTab() {
   const [error, setError] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [creating, setCreating] = useState(false);
+  
+  // Edit and Delete modal states
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingMess, setEditingMess] = useState<Mess | null>(null);
+  const [deletingMess, setDeletingMess] = useState<Mess | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -109,6 +117,90 @@ export default function DashboardTab() {
     }
   };
 
+  const handleEditMess = async () => {
+    if (!editingMess || !formData.name || !formData.description || !formData.address || !formData.phone) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    setEditing(true);
+    try {
+      const updateData = {
+        name: formData.name,
+        description: formData.description,
+        address: formData.address,
+        phone: formData.phone,
+        email: formData.email || undefined,
+        delivery_radius: parseFloat(formData.delivery_radius),
+        operating_hours: {
+          open_time: formData.open_time,
+          close_time: formData.close_time,
+          days: formData.days,
+        },
+      };
+
+      const { error } = await supabase
+        .from('messes')
+        .update(updateData)
+        .eq('id', editingMess.id);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Mess updated successfully!');
+      setShowEditDialog(false);
+      setEditingMess(null);
+      fetchMesses();
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleDeleteMess = async () => {
+    if (!deletingMess) return;
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('messes')
+        .delete()
+        .eq('id', deletingMess.id);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Mess deleted successfully!');
+      setShowDeleteDialog(false);
+      setDeletingMess(null);
+      fetchMesses();
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openEditDialog = (mess: Mess) => {
+    setEditingMess(mess);
+    setFormData({
+      name: mess.name,
+      description: mess.description,
+      address: mess.address,
+      phone: mess.phone,
+      email: mess.email || '',
+      delivery_radius: mess.delivery_radius.toString(),
+      open_time: mess.operating_hours?.open_time || '08:00',
+      close_time: mess.operating_hours?.close_time || '22:00',
+      days: mess.operating_hours?.days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    });
+    setShowEditDialog(true);
+  };
+
+  const openDeleteDialog = (mess: Mess) => {
+    setDeletingMess(mess);
+    setShowDeleteDialog(true);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved': return theme.colors.success;
@@ -185,11 +277,11 @@ export default function DashboardTab() {
                   </View>
 
                   <View style={styles.messActions}>
-                    <Button mode="outlined" style={styles.actionButton}>
+                    <Button mode="outlined" style={styles.actionButton} onPress={() => openEditDialog(mess)}>
                       Edit
                     </Button>
-                    <Button mode="outlined" style={styles.actionButton}>
-                      View Menu
+                    <Button mode="outlined" style={styles.actionButton} onPress={() => openDeleteDialog(mess)}>
+                      Delete
                     </Button>
                   </View>
                 </Card.Content>
@@ -275,6 +367,103 @@ export default function DashboardTab() {
                 disabled={creating}
               >
                 Create Mess
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+
+          {/* Edit Mess Dialog */}
+          <Dialog visible={showEditDialog} onDismiss={() => setShowEditDialog(false)}>
+            <Dialog.Title>Edit Mess</Dialog.Title>
+            <Dialog.Content>
+              <ScrollView>
+                <TextInput
+                  label="Mess Name *"
+                  value={formData.name}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Description *"
+                  value={formData.description}
+                  onChangeText={(text) => setFormData({ ...formData, description: text })}
+                  multiline
+                  numberOfLines={3}
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Address *"
+                  value={formData.address}
+                  onChangeText={(text) => setFormData({ ...formData, address: text })}
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Phone Number *"
+                  value={formData.phone}
+                  onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Email (optional)"
+                  value={formData.email}
+                  onChangeText={(text) => setFormData({ ...formData, email: text })}
+                  keyboardType="email-address"
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Delivery Radius (km)"
+                  value={formData.delivery_radius}
+                  onChangeText={(text) => setFormData({ ...formData, delivery_radius: text })}
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+                <View style={styles.timeContainer}>
+                  <TextInput
+                    label="Open Time"
+                    value={formData.open_time}
+                    onChangeText={(text) => setFormData({ ...formData, open_time: text })}
+                    style={[styles.input, styles.halfInput]}
+                  />
+                  <TextInput
+                    label="Close Time"
+                    value={formData.close_time}
+                    onChangeText={(text) => setFormData({ ...formData, close_time: text })}
+                    style={[styles.input, styles.halfInput]}
+                  />
+                </View>
+              </ScrollView>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowEditDialog(false)}>Cancel</Button>
+              <Button 
+                mode="contained" 
+                onPress={handleEditMess}
+                loading={editing}
+                disabled={editing}
+              >
+                Update Mess
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+
+          {/* Delete Mess Dialog */}
+          <Dialog visible={showDeleteDialog} onDismiss={() => setShowDeleteDialog(false)}>
+            <Dialog.Title>Delete Mess</Dialog.Title>
+            <Dialog.Content>
+              <Text style={{ color: theme.colors.onSurface }}>
+                Are you sure you want to delete "{deletingMess?.name}"? This action cannot be undone.
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowDeleteDialog(false)}>Cancel</Button>
+              <Button 
+                mode="contained" 
+                onPress={handleDeleteMess}
+                loading={deleting}
+                disabled={deleting}
+                buttonColor={theme.colors.error}
+              >
+                Delete Mess
               </Button>
             </Dialog.Actions>
           </Dialog>

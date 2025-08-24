@@ -8,6 +8,7 @@ import { Database } from '../../types/database';
 import SubscriptionCard from '../../components/customer/SubscriptionCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import { useRouter } from 'expo-router';
 
 type Subscription = Database['public']['Tables']['subscriptions']['Row'] & {
   messes: Database['public']['Tables']['messes']['Row'];
@@ -20,6 +21,7 @@ export default function SubscriptionsTab() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     if (user?.role === 'customer') {
@@ -109,7 +111,7 @@ export default function SubscriptionsTab() {
         icon="plus"
         label="New Subscription"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => {}}
+        onPress={() => router.push(`/discover` as any)}
       />
     </View>
   );

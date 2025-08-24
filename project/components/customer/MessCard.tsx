@@ -70,6 +70,11 @@ export default function MessCard({ mess, userLocation, onPress, onSubscribe }: M
             <Chip size="small" style={styles.chip}>
               {mess.delivery_radius} km radius
             </Chip>
+            </View>
+            <View style={styles.actions}>
+            <Button mode="contained" onPress={onSubscribe} buttonColor="light-green-200">
+              Subscribe
+            </Button>
           </View>
 
         </Card.Content>
@@ -133,6 +138,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginTop: 10,
   },
   actionButton: {
     flex: 1,

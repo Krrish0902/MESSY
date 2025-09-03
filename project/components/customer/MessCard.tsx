@@ -15,7 +15,7 @@ interface MessCardProps {
 }
 
 export default function MessCard({ mess, userLocation, onPress, onSubscribe }: MessCardProps) {
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
 
   const distance = userLocation ? LocationService.calculateDistance(
     userLocation.latitude,
@@ -72,7 +72,7 @@ export default function MessCard({ mess, userLocation, onPress, onSubscribe }: M
             </Chip>
             </View>
             <View style={styles.actions}>
-            <Button mode="contained" onPress={onSubscribe} buttonColor="light-green-200">
+            <Button mode="contained" onPress={onSubscribe} buttonColor={isDark ? "green" : "lightgreen"}>
               Subscribe
             </Button>
           </View>
